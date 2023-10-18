@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Aplite Game</title>
+		<link rel="stylesheet" type="text/css" href="style.css">		
+	</head>
+	<body>
+		<div id="tutorial">
+			<div id="signinplayertutorial" style="text-align: center;">
+				<h1>Select Player</h1>
+				<img src="./images/tutorial/select.png" height="50%" width="50%">
+				<p>
+					Write <strong>player name</strong> and select <strong>avtar</strong>
+				</p>
+			</div>
+			<div id="gamescreentutorial" style="display: none;text-align: center;">
+				<h1>Game Screen</h1>
+				<img src="./images/tutorial/game.png" height="50%" width="50%">
+				<p>
+					<strong>1.</strong> Use <strong>w a s d</strong> or <strong>arrows</strong> keys to move your player and <strong>space bar</strong> to fire<br>
+					<strong>2.</strong> Opponent will die after hitting <strong>3</strong> bullets<br>
+					<strong>3.</strong> Each bullet hit to the opponent will score you <strong>2</strong> points<br>
+					<strong>4.</strong> grap the <strong>special gun</strong> which <strong>randomly</strong> appear on the screen
+				</p>
+			</div>
+			<div id="connectedplayerstutorial" style="display: none;text-align: center;">
+				<h1>Connected Player</h1>
+				<img src="./images/tutorial/score.png" height="300px" width="20%">
+				<p>
+					It will show all <strong>Conneted users</strong> and their <strong>score</strong>
+				</p>
+			</div>
+			<div id="detailstutorial" style="display: none;text-align: center;">
+				<h1>Details</h1>
+				<img src="./images/tutorial/detail.png" height="50%" width="50%">
+				<p>
+					<strong>1. Bullets</strong>will show number of bullets left<br>
+					<strong>2. Score</strong>will show your personal score<br>
+					<strong>3. Hearts</strong>will show your life<br>
+					<strong>4. Timer</strong>will show remaining time of game
+				</p>
+			</div>
+		</div>
+		<div id="sign-in" class="sign-in" style="display: none;">
+			<div class="player-name">
+				<span style="display: none; font-size: 40px;">Player Name</span> 
+				<input type="text" name="player-name" id="player-name">	
+			</div>
+			
+			<div>
+				<img src="images/players/player1.png" alt="Avatar" class="avatar" onclick="playerSelected('player1')">
+				<img src="images/players/player2.png" alt="Avatar" class="avatar" onclick="playerSelected('player2')">
+				<img src="images/players/player3.png" alt="Avatar" class="avatar" onclick="playerSelected('player3')">
+				<img src="images/players/player4.png" alt="Avatar" class="avatar" onclick="playerSelected('player4')">
+			</div>
+			<span style="font-size: 50px">Select Avtar </span>
+		</div>
+		<!-- <canvas id="ctx1" width="500" height="500" style="border: 1px solid #000000"></canvas>	 -->
+		<div id="game-screen" style="display: none; text-align: center;">
+			<canvas id="ctx" width="1024" height="720" style="border: 1px solid #000000"></canvas>
+			<canvas id="msgctx" width="1024" height="100" class="msg-canvas" style="display: none"></canvas>
+			<canvas id="scorectx" width="300" height="827" class="score-canvas"></canvas>
+			<canvas id="dtlctx" width="1024" height="100" style="background:  #A7C187;"></canvas>
+			
+			<h3 id='reloadMsg' style="display: none">Please Reload Gun by pressing R</h3>	
+		</div>
+		
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.1/socket.io.min.js"></script> -->
+		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+		
+		<script type="text/javascript">
+			setTimeout(function(){
+				document.getElementById("signinplayertutorial").style.display = "none";
+				document.getElementById("gamescreentutorial").style.display = "block";
+			},1000*3)
+			setTimeout(function(){
+				document.getElementById("gamescreentutorial").style.display = "none";
+				document.getElementById("connectedplayerstutorial").style.display = "block";
+			},1000*6)
+			setTimeout(function(){
+				document.getElementById("connectedplayerstutorial").style.display = "none";
+				document.getElementById("detailstutorial").style.display = "block";
+			},1000*9)
+			setTimeout(function(){
+				document.getElementById("tutorial").style.display = "none";
+				document.getElementById("sign-in").style.display = "block";
+			},1000*12)
+			var socket = io.connect("http://192.168.88.50:8080")
+			// var socket = io.connect("https://aplite-game.herokuapp.com")
+
+			var Reload = false
+			var bulletOverStatus = true
+			var gameover = false
+			function playerSelected(player){
+				var playerImage = player
+				var name = document.getElementById('player-name').value
+				if(name == ''){
+					alert('Enter Player Name')
+				}
+				else{
+					socket.emit('adduser', {playerImage:playerImage, playerName:name});
+					document.getElementById("sign-in").style.display = "none";
+					document.getElementById("game-screen").style.display = "block";
+				}
+			}
+
+			var imgs = [];
+			var bullet = new Image();
+			var imageObj = new Image();
+			var blast = new Image();
+			var bullets = new Image()
+			var heart = new Image()
+			var bulletsText = new Image()
+			var bgImg = new Image()
+			var score = new Image()
+			var timer = new Image()
+			var numImgs = 10;
+			var bulletLeft = []
+			
+			bullets.src = './images/bullets/bullet.png'
+			heart.src = './images/heart.png'
+			bulletsText.src = './images/bulletsText.png'
+			blast.src = './images/blast.png'
+			bgImg.src = './images/background.png'
+			score.src = './images/score.png'
+			timer.src = './images/timer.jpeg'
+			for (var i=0; i<numImgs; i++) {
+			  imgs.push(new Image());
+			  bulletLeft.push(new Image())
+			}
+			
+			var ctx = document.getElementById('ctx').getContext('2d');
+			ctx.font = '30px Arial';
+	    var msgctx = document.getElementById('msgctx').getContext('2d');
+	    msgctx.font = '30px Arial';
+	    var dtlctx = document.getElementById('dtlctx').getContext('2d');
+	    dtlctx.font = '30px Arial';
+	    var scorectx = document.getElementById('scorectx').getContext('2d');
+	    scorectx.font ='30px Arial';
+			
+			socket.on('newPositions', function(data){
+				ctx.clearRect(0,0,500,500)
+				scorectx.clearRect(0,0,300,827)
+		    ctx.drawImage(bgImg,0,0);   
+				for(var i = 0 ; i < data.player.pack.length; i++){
+			 		// console.log(data.player.pack[i])
+			 		if(data.player.pack[i].bulletLeft<1){
+			 			if(bulletOverStatus){
+			 				bulletOverStatus = false
+			 				socket.emit('bulletOver')	
+			 			}
+			 		}
+			 		if(data.player.pack[i].playerImage){
+			 			imgs[i].src = './images/players/'+data.player.pack[i].playerImage+'_'+data.player.pack[i].faced+'.png';
+			 		}
+	 				ctx.drawImage(imgs[i], data.player.pack[i].x, data.player.pack[i].y, 50, 50);
+	 				ctx.fillText(data.player.pack[i].playerName,data.player.pack[i].x+10, data.player.pack[i].y+70,30,10);
+					bullet.src = './images/bullets/bullet_'+data.player.pack[i].faced+'.png';
+					for(var j = 0 ; j < data.bullet.length; j++){
+						ctx.drawImage(bullet, data.bullet[j].x, data.bullet[j].y,10,10);
+					}
+					if(data.player.pack[i].hit){
+						ctx.drawImage(blast, data.player.pack[i].hitX, data.player.pack[i].hitY,20,20);
+					}
+				}
+				for(var i = 0 ; i < data.player.score.length; i++){
+					scorectx.drawImage(score,55, 5, 200,60)
+					scorectx.fillText(data.player.score[i].player, 10, 100+i*55, 100, 20)
+					scorectx.fillText(data.player.score[i].score, 200, 100+i*55, 20, 20)
+				}
+
+				if(data.power.length){
+					var gun = new Image()
+					for (var i = 0; i < data.power.length; i++) {
+						gun.src = './images/guns/'+ data.power[i].gun
+						ctx.drawImage(gun, data.power[i].x, data.power[i].y, 50, 50);
+					}
+				}
+				
+				document.onkeydown = function(event){
+					if(!gameover){
+						if(event.keyCode === 68 || event.keyCode === 39){
+							socket.emit('keyPress',{inputId:'right', status:true})
+							socket.emit('keyPress',{inputId:'mouseAngle', status:0})
+						}
+						if(event.keyCode === 83 || event.keyCode === 40){
+							socket.emit('keyPress',{inputId:'down', status:true})
+							// socket.emit('keyPress',{inputId:'mouseAngle', status:90})
+						}
+						if(event.keyCode === 65 || event.keyCode === 37){
+							socket.emit('keyPress',{inputId:'left', status:true})
+							socket.emit('keyPress',{inputId:'mouseAngle', status:-180})
+						}
+						if(event.keyCode === 87 || event.keyCode === 38){
+							socket.emit('keyPress',{inputId:'up', status:true})
+							// socket.emit('keyPress',{inputId:'mouseAngle', status:-90})
+						}
+						if(event.keyCode === 32){
+							socket.emit('keyPress',{inputId:'attack', status:true})
+							setTimeout(function(){
+								socket.emit('keyPress',{inputId:'attack', status:false})		
+							},35)
+						}
+						if(event.keyCode === 82){
+							socket.emit('reloadGun')
+							Reload = false
+							document.getElementById('msgctx').style.display = "none"
+						}
+						if(event.keyCode === 13){
+							document.getElementById('msgctx').style.display = "none"
+							socket.emit('re-play')
+						}	
+					}
+				}
+				
+				document.onkeyup = function(event){
+					if(!gameover){
+						if(event.keyCode === 68 || event.keyCode === 39){
+							socket.emit('keyPress',{inputId:'right', status:false})
+						}
+						if(event.keyCode === 83 || event.keyCode === 40){
+							socket.emit('keyPress',{inputId:'down', status:false})
+						}
+						if(event.keyCode === 65 || event.keyCode === 37){
+							socket.emit('keyPress',{inputId:'left', status:false})
+						}
+						if(event.keyCode === 87 || event.keyCode === 38){
+							socket.emit('keyPress',{inputId:'up', status:false})
+						}
+						if(event.keyCode === 32){
+							socket.emit('keyPress',{inputId:'attack', status:false})
+						}	
+					}
+				}
+			})
+	   				
+			socket.on('want to restart', function(){
+				msgctx.clearRect(0,0,1024,500)
+				setTimeout(function(){
+					msgctx.fillText("Please Enter To Play Again",300,50)
+					document.getElementById('msgctx').style.display = "block"
+				},1000)
+			})
+
+			socket.on('showBulletOverMsg', function(){
+				msgctx.clearRect(0,0,1024,500)
+				msgctx.fillText("Please Reload Gun by pressing R",300,50)
+				document.getElementById('msgctx').style.display = "block"
+			})
+
+			socket.on('gameStats', function(data){
+				dtlctx.clearRect(0,0,600,500)
+				dtlctx.drawImage(bulletsText, 5, 10 , 150, 45)
+				dtlctx.drawImage(bullets, 25, 70 , 20, 20)
+				dtlctx.fillText(data.bullets, 80, 90 , 20, 20)
+				dtlctx.drawImage(score,200,1, 200,60)
+				dtlctx.fillText(data.score, 300, 94 , 20, 20)
+				
+				for(var i=data.heart; i>0; i--){
+					dtlctx.drawImage(heart, 450+55*i, 20 , 50, 50)
+				}
+			})
+
+			socket.on('timer', function(data){
+				var min = parseInt(data/60)
+				var sec = parseInt(data%60)
+				dtlctx.clearRect(700,0,1024,1024,500)
+				dtlctx.drawImage(timer,750,20, 100,60)
+				if(min<10){
+					dtlctx.fillText('0'+min, 900, 55 , 50, 50)
+				}
+				else{
+					dtlctx.fillText(min, 900, 55 , 50, 50)
+				}
+				
+				dtlctx.fillText(':', 940, 55 , 50, 50)
+				if(sec<10){
+					dtlctx.fillText('0'+sec, 955, 55 , 50, 50)
+				}
+				else{
+					dtlctx.fillText(sec, 955, 55 , 50, 50)
+				}
+			})
+
+			socket.on('gameover', function(data){
+				gameover = true
+				msgctx.clearRect(0,0,1024,500)
+				msgctx.fillText("GAME OVER",400,30)
+				msgctx.fillText("Winner is "+data.player, 450, 80, 100, 50)
+				document.getElementById('msgctx').style.display = "block"
+				setTimeout(function(){
+					location.reload();
+				},1000*4)
+			})
+		</script>
+	</body>
+</html>
